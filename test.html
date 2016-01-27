@@ -7,56 +7,63 @@
   <script src="https://connect.soundcloud.com/sdk/sdk-3.0.0.js"></script>
   <script src="https://code.jquery.com/jquery-2.2.0.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/rxjs/4.0.7/rx.all.js"></script>
-
-  </script>
-
-  </script>
 <script>
 
 SC.initialize({
   client_id: 'ac7b31ea50f2019f548ffb8f7056b41d',
-  redirect_uri: 'http://localhost:8000/callback.html'
+  redirect_uri: 'http://localhost:8080/callback.html'
 });
 
-var address;
+var button = document.getElementById('more');
+var clickStream = Rx.Observable.fromEvent('click', button);
 
-// initiate auth popup
-var connection = SC.connect()
+var apiUrlStream = Rx.Observable.just('/me/activities');
 
-var first_page = connection.then(function() {
+var connection = Rx.Observable.fromPromise(SC.connect());
+
+var itemsStream = connection.map(function() {
+  var url = apiUrlStream.last()
   return SC.get('/me/activities', {"limit": 10} );
 });
 
-first_page.then(function(obj) {
-  console.log(obj);
-  address = obj.next_href;
-  console.log(address);
+var dataStream = clickStream.startWith('startup click')
+  .map( function() { return itemsStream }
+)
 
-  $('#more').click( {url: address}, function(e) {
-    SC.get(e.data.url.split('?')[0].split('.com/')[1], {cursor: e.data.url.split('cursor=')[1]} ).then(function(data){
-      console.log(data);
-      address = data.next_href;
-    });
-  })
-});
+var subscription = dataStream.subscribe(
+  function (x) {
+    console.log(x);
+    apiUrlStream.concat(Rx.Observable.just(x.result.next_href));
+  },
+  function (e) { console.log(e); },
+  function () { console.log('Completed'); }
+);
 
 
-// .then(function(activities) {
-//   var sortedItems = activities.collection.sort(function(a, b) {
-//     if ((a.origin.likes_count * 100) / a.origin.playback_count < (b.origin.likes_count * 100) / b.origin.playback_count) {
-//       return 1;
-//     } else {
-//       return -1;
-//     }
-//   });
-//   return sortedItems;
-// })
+
+
+
+// // TODO: here
+// first_page.map(function(obj) {
+//   console.log(obj);
+//   address = obj.next_href;
+//   console.log(address);
+//
+//   $('#more').click( {url: address}, function(e) {
+//     SC.get(e.data.url.split('?')[0].split('.com/')[1], {cursor: e.data.url.split('cursor=')[1]} ).then(function(data){
+//       console.log(data);
+//       address = data.next_href;
+//     });
+//   })
+// });
 
 </script>
 </head>
 <body>
   <div class="tracks">
     <button id="more" type="button" name="button"> load more </button>
+    <button id="last week" type="button" name="button"> last week </button>
+    <button id="last month" type="button" name="button"> last month </button>
   </div>
 </body>
 </html>
