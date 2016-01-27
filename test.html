@@ -15,30 +15,31 @@
 
 SC.initialize({
   client_id: 'ac7b31ea50f2019f548ffb8f7056b41d',
-  redirect_uri: 'http://localhost:8000/callback.html'
+  redirect_uri: 'http://localhost:8080/callback.html'
 });
 
-var address;
 
 // initiate auth popup
 var connection = SC.connect()
 
 var first_page = connection.then(function() {
-  return SC.get('/me/activities', {"limit": 10} );
+  return SC.get('/me/activities', {"limit": 50} );
 });
 
 first_page.then(function(obj) {
   console.log(obj);
-  address = obj.next_href;
-  console.log(address);
-
-  $('#more').click( {url: address}, function(e) {
-    SC.get(e.data.url.split('?')[0].split('.com/')[1], {cursor: e.data.url.split('cursor=')[1]} ).then(function(data){
-      console.log(data);
-      address = data.next_href;
-    });
-  })
+  $('#more').click( {url: obj.next_href}, getData);
 });
+
+function getData(e) {
+  SC.get(e.data.url.split('?')[0].split('.com/')[1], {cursor: e.data.url.split('cursor=')[1]} ).then(function(data){
+    console.log(data);
+
+    $('#more').off();
+    $('#more').click( {url: data.next_href}, getData);
+  })
+}
+
 
 
 // .then(function(activities) {
